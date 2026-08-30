@@ -333,12 +333,14 @@ struct StepLoopStats {
 };
 
 // Run the lockstep batched greedy decode. Each row steps until it emits
-// `eos_id`, accumulates `max_new` generated tokens, or fills the KV window;
+// `eos_id`, accumulates its generation budget, or fills the KV window;
 // each emitted token is appended to generated[b]. Finished / invalid rows keep
 // stepping into their own KV slab (a no-op for live rows). Polls
 // session->poll_abort() once per step. The step graph must already be built
 // and allocated on `sched`. Returns TRANSCRIBE_ERR_ABORTED on abort,
-// TRANSCRIBE_ERR_GGUF on a compute failure, else TRANSCRIBE_OK.
+// TRANSCRIBE_ERR_GGUF on a compute failure, else TRANSCRIBE_OK. `max_new` is
+// the common budget and loop bound. When `max_new_per_row` is non-null, it must
+// contain one positive budget per row; each row stops at that budget instead.
 transcribe_status run_batched_step_loop(transcribe_session *                session,
                                         ggml_backend_sched_t                sched,
                                         const StepBatchedIO &               io,
@@ -348,7 +350,8 @@ transcribe_status run_batched_step_loop(transcribe_session *                sess
                                         int                                 max_new,
                                         const StepBatchedState &            state,
                                         std::vector<std::vector<int32_t>> & generated,
-                                        StepLoopStats *                     stats         = nullptr,
-                                        std::vector<char> *                 truncated_out = nullptr);
+                                        StepLoopStats *                     stats           = nullptr,
+                                        std::vector<char> *                 truncated_out   = nullptr,
+                                        const std::vector<int> *            max_new_per_row = nullptr);
 
 }  // namespace transcribe::causal_lm

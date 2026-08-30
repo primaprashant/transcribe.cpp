@@ -97,7 +97,7 @@ struct transcribe_model {
         // n_ctx cap applies to (qwen3_asr, granite, voxtral, cohere, canary,
         // ...). When false the family has no decoder context cap and the
         // fields below stay zero.
-        bool    has_context_cap        = false;
+        bool    has_context_cap             = false;
         // When true, effective_max_audio_ms comes straight from
         // caps.max_audio_ms rather than being derived from effective_n_ctx.
         // Set by families whose AUDIO bound is the encoder positional table
@@ -107,20 +107,26 @@ struct transcribe_model {
         // come from the decoder (n_ctx-sensitive). Left false by families
         // whose audio tokens consume the decoder context (qwen3_asr, granite,
         // voxtral, ...), where the audio bound legitimately scales with n_ctx.
-        bool    audio_from_caps        = false;
+        bool    audio_from_caps             = false;
         // The model's trained decoder context window, in tokens.
-        int32_t model_max_ctx          = 0;
+        int32_t model_max_ctx               = 0;
         // Representative non-audio prompt token overhead (chat affixes etc.).
-        int32_t prompt_overhead        = 0;
+        int32_t prompt_overhead             = 0;
         // Generation budget reserved when sizing the input bound.
-        int32_t gen_reserve            = 0;
+        int32_t gen_reserve                 = 0;
+        // Optional audio-proportional generation reserve. When positive, the
+        // effective reserve is max(gen_reserve,
+        // audio_tokens * gen_reserve_per_audio_token). Qwen3-ASR uses 1 so its
+        // long-form output budget grows with the encoded audio instead of
+        // stopping at the short-input 256-token floor.
+        int32_t gen_reserve_per_audio_token = 0;
         // Milliseconds of 16 kHz audio per audio token (inverse encoder rate),
         // used to turn an audio-token budget into effective_max_audio_ms.
-        double  ms_per_audio_token     = 0.0;
+        double  ms_per_audio_token          = 0.0;
         // KV elements per context token (n_kv_heads * head_dim * n_layers * 2,
         // for K and V). The query multiplies by the session kv_type byte size
         // and effective_n_ctx to estimate max_kv_bytes.
-        int64_t kv_elems_per_ctx_token = 0;
+        int64_t kv_elems_per_ctx_token      = 0;
     } limits{};
 
     // Wall-clock load time in microseconds, captured by per-family

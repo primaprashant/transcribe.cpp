@@ -34,6 +34,22 @@ namespace transcribe::qwen3_asr {
 
 void apply_family_invariants(transcribe_model & model);
 
+// Qwen's published 256-token value is a short-input default, not a model
+// limit. Long-form decode reserves at least that many tokens, then scales to
+// one output token per encoded audio token. The latter is a conservative
+// speech-rate bound: the encoder emits 12.5 audio tokens/s, comfortably above
+// normal text-token rates even for character-heavy languages.
+constexpr int k_generation_budget_min = 256;
+
+int generation_budget(int32_t audio_tokens);
+
+// Invert the Qwen input gate for model/session limit reporting. Returns the
+// largest audio-token count satisfying:
+//
+//   prompt_tokens + audio_tokens + generation_budget(audio_tokens)
+//       <= context_tokens
+int max_audio_tokens_for_context(int32_t context_tokens, int32_t prompt_tokens);
+
 // Encode "language {Name}<asr_text>" for the given BCP-47 code: the token-id
 // sequence the chat template seeds the assistant turn with on a forced hint.
 // Declared here (not in model.cpp's anon namespace) so the BPE parity test can

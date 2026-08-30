@@ -2451,7 +2451,28 @@ extern "C" transcribe_status transcribe_session_get_limits(const struct transcri
         if (lb.audio_from_caps) {
             staged.effective_max_audio_ms = model->caps.max_audio_ms;
         } else {
-            const int64_t audio_tokens    = (int64_t) eff - lb.prompt_overhead - lb.gen_reserve;
+            const int64_t available    = (int64_t) eff - lb.prompt_overhead;
+            int64_t       audio_tokens = 0;
+            if (available > 0 && lb.gen_reserve_per_audio_token > 0) {
+                // Invert audio + max(min_reserve, audio*rate) <= available.
+                // A binary search keeps the generic limits path exact for the
+                // piecewise reserve without baking a Qwen-specific formula
+                // into the dispatcher.
+                int64_t lo = 0;
+                int64_t hi = available;
+                while (lo < hi) {
+                    const int64_t mid     = lo + (hi - lo + 1) / 2;
+                    const int64_t reserve = std::max<int64_t>(lb.gen_reserve, mid * lb.gen_reserve_per_audio_token);
+                    if (mid + reserve <= available) {
+                        lo = mid;
+                    } else {
+                        hi = mid - 1;
+                    }
+                }
+                audio_tokens = lo;
+            } else {
+                audio_tokens = available - lb.gen_reserve;
+            }
             staged.effective_max_audio_ms = (audio_tokens > 0 && lb.ms_per_audio_token > 0.0) ?
                                                 (int64_t) ((double) audio_tokens * lb.ms_per_audio_token) :
                                                 0;

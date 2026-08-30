@@ -891,8 +891,13 @@ transcribe_status run_batched_step_loop(transcribe_session *                sess
                                         const StepBatchedState &            state,
                                         std::vector<std::vector<int32_t>> & generated,
                                         StepLoopStats *                     stats,
-                                        std::vector<char> *                 truncated_out) {
+                                        std::vector<char> *                 truncated_out,
+                                        const std::vector<int> *            max_new_per_row) {
     const int n = n_batch;
+
+    if (max_new <= 0 || (max_new_per_row != nullptr && static_cast<int>(max_new_per_row->size()) != n)) {
+        return TRANSCRIBE_ERR_INVALID_ARG;
+    }
 
     // Per-row working state.
     std::vector<int32_t>      next_tok = state.next_tok;
@@ -963,7 +968,11 @@ transcribe_status run_batched_step_loop(transcribe_session *                sess
             if (n_past[b] < max_n_kv) {
                 mask_buf[base + n_past[b]] = mz;
             }
-            if (tok == eos_id || static_cast<int>(generated[b].size()) >= max_new || n_past[b] + 1 > max_n_kv) {
+            const int row_max_new = max_new_per_row != nullptr ? (*max_new_per_row)[b] : max_new;
+            if (row_max_new <= 0) {
+                return TRANSCRIBE_ERR_INVALID_ARG;
+            }
+            if (tok == eos_id || static_cast<int>(generated[b].size()) >= row_max_new || n_past[b] + 1 > max_n_kv) {
                 finished[b] = 1;
             } else {
                 all_done = false;
