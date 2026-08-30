@@ -270,6 +270,7 @@ int main() {
         CHECK(transcribe_session_get_limits(s, &lim) == TRANSCRIBE_OK);
         CHECK_EQ_INT(lim.effective_n_ctx, hp.dec_max_position_embeddings);
         CHECK(lim.effective_max_audio_ms > 0);
+        CHECK_EQ_INT(lim.effective_max_audio_ms, caps->max_audio_ms);
         CHECK(lim.max_kv_bytes > 0);
         const long long default_audio_ms = (long long) lim.effective_max_audio_ms;
         const long long default_kv_bytes = (long long) lim.max_kv_bytes;
@@ -283,6 +284,9 @@ int main() {
         CHECK(transcribe_session_get_limits(s, &lim) == TRANSCRIBE_OK);
         CHECK_EQ_INT(lim.effective_n_ctx, 4096);
         CHECK(lim.effective_max_audio_ms > 0);
+        const long long expected_audio_tokens = (4096 - 48) / 2;
+        const long long expected_audio_ms = expected_audio_tokens * 8LL * hp.fe_hop_length * 1000LL / hp.fe_sample_rate;
+        CHECK_EQ_INT(lim.effective_max_audio_ms, expected_audio_ms);
         CHECK((long long) lim.effective_max_audio_ms < default_audio_ms);
         CHECK((long long) lim.max_kv_bytes < default_kv_bytes);
         transcribe_session_free(s);

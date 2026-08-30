@@ -179,6 +179,25 @@ int main() {
 
     // ----- Hparams match the fixture -----
     const auto & hp = qm->hparams;
+
+    // The published 256-token value is the short-input floor. Long-form
+    // generation scales with encoded audio and the inverse limit helper uses
+    // the same policy as the runtime gate.
+    CHECK_EQ_INT(transcribe::qwen3_asr::generation_budget(0), 256);
+    CHECK_EQ_INT(transcribe::qwen3_asr::generation_budget(255), 256);
+    CHECK_EQ_INT(transcribe::qwen3_asr::generation_budget(256), 256);
+    CHECK_EQ_INT(transcribe::qwen3_asr::generation_budget(257), 257);
+    CHECK_EQ_INT(transcribe::qwen3_asr::generation_budget(4096), 4096);
+    // The author implementation's maximum single ASR chunk is 1200 s. At
+    // 12.5 encoded audio tokens/s, both the input and its 15000-token output
+    // allowance fit comfortably inside the shipped 65536-token context.
+    CHECK_EQ_INT(transcribe::qwen3_asr::generation_budget(1200 * 125 / 10), 15000);
+    CHECK(transcribe::qwen3_asr::max_audio_tokens_for_context(65536, 48) >= 15000);
+    CHECK_EQ_INT(transcribe::qwen3_asr::max_audio_tokens_for_context(128, 48), 0);
+    CHECK_EQ_INT(transcribe::qwen3_asr::max_audio_tokens_for_context(559, 48), 255);
+    CHECK_EQ_INT(transcribe::qwen3_asr::max_audio_tokens_for_context(560, 48), 256);
+    CHECK_EQ_INT(transcribe::qwen3_asr::max_audio_tokens_for_context(65536, 48), 32744);
+
     CHECK_EQ_INT(hp.enc_n_layers, 2);
     CHECK_EQ_INT(hp.enc_d_model, 16);
     CHECK_EQ_INT(hp.enc_n_heads, 2);

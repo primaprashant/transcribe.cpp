@@ -49,6 +49,11 @@ Performance (M4 Max, jfk.wav = 11 s of audio):
   timestamps (those come from the sibling forced-aligner variant).
   Language tag is emitted as a Qwen-style "language X" prefix from the
   chat template.
+- Generation budget: 256 tokens is the short-input floor used by the upstream
+  examples, not an architectural maximum. The runtime reserves one output
+  token per encoded audio token for longer clips (12.5 tokens/s), bounded by
+  the model/session context. This keeps short-input allocation behavior while
+  allowing long-form transcripts to reach EOS.
 
 ## Frontend
 
@@ -187,6 +192,12 @@ code alone.
 - **Reuse Cohere's mel frontend.** Same underlying Whisper
   feature-extractor contract — we added a Qwen3-ASR profile rather than
   duplicating the STFT code.
+- **Audio-proportional decode budget.** Qwen's upstream API describes
+  `max_new_tokens=256` as adjustable for long inputs, so it cannot be treated
+  as a family limit. `generation_budget(T_enc) = max(256, T_enc)` gives the
+  decoder a conservative text-token allowance tied to actual encoded duration;
+  the same piecewise policy drives the input gate and model/session limit
+  reporting. Single and batched decode share the helper.
 - **llama.cpp decoder reuse.** The LM side is architecturally a
   standard Qwen3 causal LM. `refs/ggml-org/llama.cpp` GQA + RoPE +
   SwiGLU patterns were cross-referenced for graph construction, but no

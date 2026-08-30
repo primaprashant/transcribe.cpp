@@ -42,13 +42,16 @@ if (caps.max_audio_ms == 0) {
 `max_audio_ms` is a single honest number derived from the model's real
 metadata, not a hardcoded guess. For hard-cap families it is computed from the
 decoder context window minus a **representative** prompt and a generation
-reserve — the same shape as the upfront gate, but the gate uses the *exact*
-prompt for each call (which shifts a little with the language hint and other
-options), so `max_audio_ms` is advisory and slightly conservative, not an
-exact per-call bound. For soft-window families it is the advisory window the
-model was trained on. `0` means "no practical limit." It is a model-level
-value at the default context; for the effective limit under a lowered
-`n_ctx`, use `transcribe_session_get_limits()`.
+reserve. That reserve may itself scale with encoded audio for long-form
+generative ASR (Qwen3-ASR), so the advertised input limit leaves room for a
+transcript proportional to the clip rather than a fixed short-clip allowance.
+The upfront gate has the same shape but uses the *exact* prompt for each call
+(which shifts a little with the language hint and other options), so
+`max_audio_ms` is advisory and slightly conservative, not an exact per-call
+bound. For soft-window families it is the advisory window the model was
+trained on. `0` means "no practical limit." It is a model-level value at the
+default context; for the effective limit under a lowered `n_ctx`, use
+`transcribe_session_get_limits()`.
 
 ## The three buckets
 

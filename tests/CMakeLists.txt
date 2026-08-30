@@ -778,26 +778,23 @@ if(TRANSCRIBE_BUILD_REAL_MODEL_TESTS)
         SKIP_RETURN_CODE 77)
 endif()
 
-# Per-utterance OUTPUT_TRUNCATED in transcribe_run / transcribe_run_batch for a
-# causal_lm (LLM-decoder) family. Guards the shared src/causal_lm batched step
-# loop's truncation detection (the encoder-decoder twin is covered by
-# transcribe_moonshine_streaming_batch_truncation). Skipped (RC 77) when
-# TRANSCRIBE_QWEN3_ASR_0_6B_GGUF is unset.
+# Qwen3-ASR long-form generation budget parity across single and batch decode.
+# Skipped (RC 77) when no Qwen3-ASR model env var is set.
 if(TRANSCRIBE_BUILD_REAL_MODEL_TESTS)
-    add_executable(transcribe_qwen3_asr_batch_truncation
+    add_executable(transcribe_qwen3_asr_long_form
         qwen3_asr_batch_truncation.cpp)
 
-    target_link_libraries(transcribe_qwen3_asr_batch_truncation
+    target_link_libraries(transcribe_qwen3_asr_long_form
         PRIVATE transcribe transcribe-common-example)
 
-    target_compile_definitions(transcribe_qwen3_asr_batch_truncation PRIVATE
+    target_compile_definitions(transcribe_qwen3_asr_long_form PRIVATE
         "TRANSCRIBE_TEST_SAMPLES_DIR=\"${CMAKE_SOURCE_DIR}/samples\"")
 
-    transcribe_apply_warnings(transcribe_qwen3_asr_batch_truncation)
+    transcribe_apply_warnings(transcribe_qwen3_asr_long_form)
 
-    add_test(NAME transcribe_qwen3_asr_batch_truncation
-        COMMAND transcribe_qwen3_asr_batch_truncation)
-    set_tests_properties(transcribe_qwen3_asr_batch_truncation PROPERTIES
+    add_test(NAME transcribe_qwen3_asr_long_form
+        COMMAND transcribe_qwen3_asr_long_form)
+    set_tests_properties(transcribe_qwen3_asr_long_form PROPERTIES
         SKIP_RETURN_CODE 77)
 endif()
 
