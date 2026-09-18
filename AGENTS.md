@@ -1,8 +1,12 @@
 # transcribe.cpp Agent Conventions
 
 Read `CONTRIBUTING.md` for contribution policy, review gates, and coding
-style. This file is only the local command/automation convention sheet for
-coding agents.
+style. This file records fork priorities and local conventions for coding agents.
+
+## Fork Priorities
+
+This fork includes a Qwen3-ASR output-token budget fix for long-form transcription. Preserve that behavior and its regression coverage when merging upstream.
+IMPORTANT: Keep all fork changes small, localized, and aligned with upstream structure; avoid unrelated refactors, renames, and formatting churn to minimize future merge conflicts and maintenance.
 
 ## Python
 
