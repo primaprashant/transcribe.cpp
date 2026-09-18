@@ -433,6 +433,7 @@ set(TRANSCRIBE_FIXTURE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/tokenizer_minimal_streaming_cache_aware.gguf
     ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/tokenizer_minimal_streaming_buffered.gguf
     ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/arch_cohere_minimal.gguf
+    ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/arch_granite5_ctc_minimal.gguf
     ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/arch_qwen3_asr_minimal.gguf)
 
 find_program(TRANSCRIBE_UV uv)
@@ -655,6 +656,31 @@ if(TRANSCRIBE_UV)
 endif()
 
 # -----------------------------------------------------------------------------
+# Granite Speech 5.0 TurboCTC weight ingest smoke
+# -----------------------------------------------------------------------------
+
+if(TRANSCRIBE_UV)
+    add_executable(transcribe_granite5_ctc_smoke
+        granite5_ctc_smoke.cpp)
+
+    target_link_libraries(transcribe_granite5_ctc_smoke PRIVATE transcribe ggml)
+
+    target_include_directories(transcribe_granite5_ctc_smoke PRIVATE
+        ${CMAKE_SOURCE_DIR}/src)
+
+    target_compile_definitions(transcribe_granite5_ctc_smoke PRIVATE
+        "TRANSCRIBE_TEST_FIXTURES_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/fixtures\"")
+
+    transcribe_apply_warnings(transcribe_granite5_ctc_smoke)
+    add_dependencies(transcribe_granite5_ctc_smoke fixtures)
+
+    add_test(NAME transcribe_granite5_ctc_smoke
+        COMMAND transcribe_granite5_ctc_smoke)
+    set_tests_properties(transcribe_granite5_ctc_smoke PROPERTIES
+        SKIP_RETURN_CODE 77)
+endif()
+
+# -----------------------------------------------------------------------------
 # Real-model gated test (developer-local, never CI)
 # -----------------------------------------------------------------------------
 #
@@ -683,6 +709,55 @@ if(TRANSCRIBE_BUILD_REAL_MODEL_TESTS)
     add_test(NAME transcribe_parakeet_real_smoke
         COMMAND transcribe_parakeet_real_smoke)
     set_tests_properties(transcribe_parakeet_real_smoke PROPERTIES
+        SKIP_RETURN_CODE 77)
+
+    # Real-model granite5_ctc converter + loader gate.
+    add_executable(transcribe_granite5_ctc_real_smoke
+        granite5_ctc_real_smoke.cpp)
+
+    target_link_libraries(transcribe_granite5_ctc_real_smoke PRIVATE transcribe ggml)
+
+    target_include_directories(transcribe_granite5_ctc_real_smoke PRIVATE
+        ${CMAKE_SOURCE_DIR}/src)
+
+    transcribe_apply_warnings(transcribe_granite5_ctc_real_smoke)
+
+    add_test(NAME transcribe_granite5_ctc_real_smoke
+        COMMAND transcribe_granite5_ctc_real_smoke)
+    set_tests_properties(transcribe_granite5_ctc_real_smoke PROPERTIES
+        SKIP_RETURN_CODE 77)
+
+    # Public-ABI transcript and no-timestamps contract gate.
+    add_executable(transcribe_granite5_ctc_e2e_smoke
+        granite5_ctc_e2e_smoke.cpp)
+
+    target_link_libraries(transcribe_granite5_ctc_e2e_smoke
+        PRIVATE transcribe transcribe-common-example)
+
+    target_compile_definitions(transcribe_granite5_ctc_e2e_smoke PRIVATE
+        "TRANSCRIBE_TEST_SAMPLES_DIR=\"${CMAKE_SOURCE_DIR}/samples\"")
+
+    transcribe_apply_warnings(transcribe_granite5_ctc_e2e_smoke)
+
+    add_test(NAME transcribe_granite5_ctc_e2e_smoke
+        COMMAND transcribe_granite5_ctc_e2e_smoke)
+    set_tests_properties(transcribe_granite5_ctc_e2e_smoke PROPERTIES
+        SKIP_RETURN_CODE 77)
+
+    # Real-model GigaAM workspace-retention regression.
+    add_executable(transcribe_gigaam_workspace_release_smoke
+        gigaam_workspace_release_smoke.cpp)
+
+    target_link_libraries(transcribe_gigaam_workspace_release_smoke PRIVATE transcribe ggml)
+
+    target_include_directories(transcribe_gigaam_workspace_release_smoke PRIVATE
+        ${CMAKE_SOURCE_DIR}/src)
+
+    transcribe_apply_warnings(transcribe_gigaam_workspace_release_smoke)
+
+    add_test(NAME transcribe_gigaam_workspace_release_smoke
+        COMMAND transcribe_gigaam_workspace_release_smoke)
+    set_tests_properties(transcribe_gigaam_workspace_release_smoke PROPERTIES
         SKIP_RETURN_CODE 77)
 
     # Multitalker bundle end-to-end smoke (diarize=ON on the composed
@@ -755,6 +830,27 @@ if(TRANSCRIBE_BUILD_REAL_MODEL_TESTS)
     add_test(NAME transcribe_moonshine_streaming_stream_parity
         COMMAND transcribe_moonshine_streaming_stream_parity)
     set_tests_properties(transcribe_moonshine_streaming_stream_parity PROPERTIES
+        SKIP_RETURN_CODE 77)
+endif()
+
+# Streaming <-> offline interleave on one session (release_scratch after
+# offline runs must be transparent to a following stream and vice versa).
+# Runs for each streaming model env var that is set; RC 77 when none is.
+if(TRANSCRIBE_BUILD_REAL_MODEL_TESTS)
+    add_executable(transcribe_stream_offline_interleave_smoke
+        stream_offline_interleave_smoke.cpp)
+
+    target_link_libraries(transcribe_stream_offline_interleave_smoke
+        PRIVATE transcribe transcribe-common-example)
+
+    target_compile_definitions(transcribe_stream_offline_interleave_smoke PRIVATE
+        "TRANSCRIBE_TEST_SAMPLES_DIR=\"${CMAKE_SOURCE_DIR}/samples\"")
+
+    transcribe_apply_warnings(transcribe_stream_offline_interleave_smoke)
+
+    add_test(NAME transcribe_stream_offline_interleave_smoke
+        COMMAND transcribe_stream_offline_interleave_smoke)
+    set_tests_properties(transcribe_stream_offline_interleave_smoke PROPERTIES
         SKIP_RETURN_CODE 77)
 endif()
 

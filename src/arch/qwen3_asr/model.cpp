@@ -67,14 +67,6 @@ int max_audio_tokens_for_context(int32_t context_tokens, int32_t prompt_tokens) 
 QwenAsrSession::~QwenAsrSession() {
     kv_cache.free();
     kv_cache_batch.free();
-    if (sched != nullptr) {
-        safe_sched_free(sched);
-        sched = nullptr;
-    }
-    if (compute_ctx != nullptr) {
-        ggml_free(compute_ctx);
-        compute_ctx = nullptr;
-    }
 }
 
 QwenAsrModel::~QwenAsrModel() {

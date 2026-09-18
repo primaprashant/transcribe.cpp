@@ -52,16 +52,7 @@ extern const Arch arch;
 static_assert(std::is_base_of_v<transcribe_model, GraniteNarModel>);
 static_assert(std::is_base_of_v<transcribe_session, GraniteNarSession>);
 
-GraniteNarSession::~GraniteNarSession() {
-    if (sched != nullptr) {
-        safe_sched_free(sched);
-        sched = nullptr;
-    }
-    if (compute_ctx != nullptr) {
-        ggml_free(compute_ctx);
-        compute_ctx = nullptr;
-    }
-}
+GraniteNarSession::~GraniteNarSession() = default;
 
 GraniteNarModel::~GraniteNarModel() {
     if (bn_fused_ctx != nullptr) {
@@ -482,9 +473,8 @@ transcribe_status run(transcribe_session *          ctx_base,
     // Upload encoder inputs.
     ggml_backend_tensor_set(eb.mel_in, cc->mel_buf.data(), 0, cc->mel_buf.size() * sizeof(float));
     {
-        std::vector<int32_t> dists =
-            precompute_attention_dists(cm->hparams.enc_context_size, cm->hparams.enc_max_pos_emb);
-        ggml_backend_tensor_set(eb.attention_dists, dists.data(), 0, dists.size() * sizeof(int32_t));
+        std::vector<int32_t> dists = precompute_pos_rows(cm->hparams.enc_context_size, cm->hparams.enc_max_pos_emb);
+        ggml_backend_tensor_set(eb.pos_rows, dists.data(), 0, dists.size() * sizeof(int32_t));
     }
     {
         const int          ctx_size = cm->hparams.enc_context_size;
